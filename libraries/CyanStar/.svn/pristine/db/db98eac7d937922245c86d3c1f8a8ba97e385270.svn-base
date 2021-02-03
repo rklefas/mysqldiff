@@ -1,0 +1,155 @@
+<?php
+
+class Request
+{
+
+	static function filteredArray($array)
+	{
+		foreach ($array as $key => $val)
+		{
+			if (is_array($val))
+				$array[$key] = self::filteredArray($val);
+			else
+				$array[$key] = strip_tags($val);
+		}
+		
+		return $array;
+	}
+	
+	
+	static function getVars($names = null)
+	{
+		$vx = array_merge($_GET, $_POST);
+
+		if ($names === null)
+			return $vx;
+			
+		$return = Arrays::whiteList($vx, $names);
+		
+		return $return;
+	}
+
+
+    
+    static function getVar($name, $default = null)
+    {        
+		$vx = array_merge($_GET, $_POST);
+
+		if(isset($vx[$name]))
+			return $vx[$name];
+			
+		return $default;
+    }
+	
+	
+	static function wholeRequest()
+	{
+		return $_SERVER['QUERY_STRING'];
+	}
+	
+	static function redirect($url, $time = null)
+	{
+
+		if (headers_sent())
+		{
+			trigger_error('Headers already sent.  Cannot redirect');
+			exit; 
+		}
+
+
+		if ($time)
+		{
+			header('refresh:'.$time.';url='.$url);
+			return true;
+		}
+		
+		header('Location: ' . $url);
+		exit($url);
+	}
+	
+	
+	static function goBack()
+	{
+		if (isset($_SERVER["HTTP_REFERER"]))
+		{
+			self::redirect($_SERVER["HTTP_REFERER"]);
+			return true;
+		}
+		
+		return false;
+	}
+		
+	
+	static function selfURL() 
+	{
+		if (!empty($_SERVER["SERVER_PROTOCOL"]))
+		{
+			$s = empty($_SERVER["HTTPS"]) ? '' : ($_SERVER["HTTPS"] == "on") ? "s" : "";
+			$protocol = self::strleft(strtolower($_SERVER["SERVER_PROTOCOL"]), "/").$s;
+			$port = ($_SERVER["SERVER_PORT"] == "80" or $_SERVER["SERVER_PORT"] == "443") ? "" : (":".$_SERVER["SERVER_PORT"]);
+			return $protocol."://".$_SERVER['SERVER_NAME'].$port.$_SERVER['REQUEST_URI'];
+		}
+		else
+		{
+			return $_SERVER['SCRIPT_FILENAME'];
+		}
+	}
+	
+	
+	static private function strleft($s1, $s2) {
+		return substr($s1, 0, strpos($s1, $s2));
+	}
+
+
+	static function findVisibleRoot($approot, $docroot, $leadingSlash = true, $trailingSlash = true)
+	{
+		$tpath = substr($approot, strlen($docroot));
+		if ($leadingSlash)
+			$tpath = "/".$tpath;
+		if ($trailingSlash)
+			$tpath .= "/";
+		$tpath = str_replace("\\", "/", $tpath);
+		$tpath = preg_replace('|/+|', '/', $tpath);
+		return $tpath;
+	}
+	
+	
+	
+	
+
+
+	static function fetch_curl_response($API_Endpoint, $dataToSend = null)
+	{
+		
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $API_Endpoint);
+		curl_setopt($ch, CURLOPT_VERBOSE, 1);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, FALSE);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt($ch, CURLOPT_SSLVERSION, 3);
+curl_setopt($ch, CURLOPT_CONNECTTIMEOUT ,20); 
+curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+		
+		if ($dataToSend)
+		{
+			curl_setopt($ch, CURLOPT_POST, 1);
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $dataToSend);
+		}
+		
+		// getting response from server
+		$httpResponse = curl_exec($ch);
+
+		curl_close($ch);
+		
+		return ($httpResponse);
+
+	}
+
+
+
+	
+
+	
+	
+}
